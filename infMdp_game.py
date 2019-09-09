@@ -5,7 +5,7 @@ Created on Thu Sep  5 16:52:53 2019
 @author: craba
 """
 import numpy as np
-import policyIteration as pI
+import dynamicProg as pI
 import cvxpy as cvx
 # need to generate MDP 
 # P : S x SA, column stochastic

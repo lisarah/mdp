@@ -5,7 +5,7 @@ Created on Thu Sep  5 16:52:53 2019
 @author: craba
 """
 import numpy as np
-import policyIteration as pI
+import dynamicProg as pI
 import cvxpy as cvx
 # need to generate MDP 
 # P : S x SA, column stochastic
@@ -65,18 +65,20 @@ for i in range(M):
 
 
 
-                    
-policy = pI.policyIteration(P,C);
+# policy iteration                    
+#policy = pI.policyIteration(P,C);
+# value iteration 
+policy = pI.valueIteration(P,C);
 
 Markov = P.dot(policy.T);
 xk = np.ones(N*M) /(N*M);
 #xk[0] = 1.;
 xNext = (Markov).dot(xk);
-print ("xNext = ", xNext);
-print ("xk = ", xk);
+#print ("xNext = ", xNext);
+#print ("xk = ", xk);
 it = 0;
-while (np.linalg.norm(xk - xNext, 2) >= 1e-8) and  it < 100 :
-    print ("in while loop",np.linalg.norm(xk - xNext, 2)  );
+while (np.linalg.norm(xk - xNext, 2) >= 5e-2) and  it < 100 :
+    print ("in while loop iteration ", it, "  norm difference ", np.linalg.norm(xk - xNext, 2)  );
     xk = 1.0*xNext;
     xNext = (Markov).dot(xk);
     it += 1;

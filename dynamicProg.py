@@ -42,24 +42,28 @@ def policyIteration(P, c):
     return pik;
 
 def valueIteration(P,c):
+    print ("------------- value iteration -------------")
     S, A = c.shape;
 #    print (S, "    ", A)
     # generate a policy that always chooses the first action
-    pik = np.zeros((S, S*A));
-
+    pik = np.zeros((S));
     newpi = np.zeros((S,S*A));
-    for i in range(S):
-        newpi[i, i*A] = 1.;
-    Vk = 1.0*c;
+    Vk = np.min(c, axis  =1);
     Vnext = np.zeros(S);
     it = 0;
-    eps = 9e-3;
+    eps = 1e-5;
     while np.linalg.norm(Vk - Vnext, 2) >= eps:
         Vk  = 1.0*Vnext;
         it += 1;
 #        Vk = np.reshape(c,(1,S*A)).dot(pik.T).dot(np.linalg.inv(np.eye(S) - gamma*P.dot(pik.T)))
         BO = c + gamma*np.reshape(Vk.dot(P), (S,A));
         Vnext = np.min(BO, axis = 1);
+        pik= np.argmin(BO, axis = 1);
+        if it%10 == 0:
+            print ("norm ", np.linalg.norm(Vk - Vnext, 2));
+    for s in range(S):
+        newpi[s, s*A + pik[s]] = 1.;
 
     print ("converged at iteration: ", it) 
-    return pik;
+    print ("--------- end of value iteration ---------------")
+    return newpi;
