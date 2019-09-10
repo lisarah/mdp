@@ -5,6 +5,7 @@ Created on Thu Sep  5 16:21:26 2019
 @author: craba
 """
 import numpy as np
+#import matplotlib.pyplot as plt
 #----------------------------------------------------------------------------#
 """
 Policy Iteration
@@ -41,6 +42,37 @@ def policyIteration(P, c):
     print ("converged at iteration: ", it) 
     return pik;
 
+def BVI(P, sP, sN, eps):
+    print ("------------- BVI -------------");
+    maxiter = 100;
+    S, SA = P.shape;
+    A = int(SA/S);
+    L = np.zeros((S));
+    U = np.ones((S));
+    L[sP] = 1.; U[sP] = 1.;
+    U[sN] = 0; L[sN] = 0.;
+    
+    
+    delta = np.zeros(maxiter);
+    delta[0] = np.max(abs(L - U));
+    it = 0;
+    while delta[int(it)] >= eps and it < maxiter - 1:
+        it += 1.;
+        nextL = np.min(np.reshape(L.dot(P), (S,A)), axis=1);
+        nextU = np.min(np.reshape(U.dot(P), (S,A)), axis=1);
+        nextL[sP] = 1.; nextU[sP] = 1.;
+        nextU[sN] = 0.; nextL[sN] = 0.;
+        L = nextL;
+        U = nextU;
+        delta[int(it)] = np.max(abs(L - U));
+        if it % 1 == 0:
+            print ("Iteration ", it, " Value Inf Norm: ", delta[int(it)]);
+#    plt.figure();
+#    plt.plot(delta); 
+#    plt.yscale('log');
+#    plt.show();       
+    print ("--------- end of BVI ---------------");
+    return L, U;
 def valueIteration(P,c):
     print ("------------- value iteration -------------")
     S, A = c.shape;
@@ -67,3 +99,4 @@ def valueIteration(P,c):
     print ("converged at iteration: ", it) 
     print ("--------- end of value iteration ---------------")
     return newpi;
+

@@ -18,8 +18,6 @@ p = 0.7;
 A = np.random.rand(N*M,A)*100.;
 b = np.random.rand(N*M,A)*10.;
 
-
-
 # create the MDP
 def assignP(P, p, valid, lookup,s ):
     if lookup[a] not in valid:

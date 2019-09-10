@@ -7,67 +7,19 @@ Created on Thu Sep  5 16:52:53 2019
 import numpy as np
 import dynamicProg as pI
 import cvxpy as cvx
+import util as ut
 # need to generate MDP 
 # P : S x SA, column stochastic
 N = 3; # columns
 M = 5; # rows
 A = 4;
-P = np.zeros((N*M, N*M*A));
 p = 0.7;
+
+P = ut.rectangleMDP(M,N,p);
 C = np.random.rand(N*M,A)*100.;
-
-def assignP(P, p, valid, lookup,s ):
-    if lookup[a] not in valid:
-        newp = 1./(len(valid));
-        for neighbour in valid:
-            P[neighbour, SA] = newp;
-    else:
-        P[lookup[a], SA] = p;
-        pBar = (1. - p) /(len(valid)-1);
-        for neighbour in valid:
-            if neighbour != lookup[a]:
-                P[neighbour, SA] = pBar;
-    return P;
-            
-for i in range(M):
-    for j in range(N):
-        s = i*N + j;
-        print (s)
-        left = i*N + j-1;
-        right = i*N + j + 1;
-        top = (i-1)*N + j;
-        bottom = (i+1)*N + j;
-
-        valid = [];
-        if s%N != 0:
-            valid.append(left);
-        if s%N != N-1:
-            valid.append(right);
-        if s >= N:
-            valid.append(top);
-        if s < (M*N - N):
-            valid.append(bottom);
-
-        lookup = {0: left, 1: right, 2: top, 3: bottom};
-        for a in range(A):
-            SA = s*A+ a; 
-#            print (SA)
-#            if SA == 25:
-#                print ("--------valid out states ----------")
-#                print (valid)
-#                print ("i: ", i);
-#                print ("j: ", j);
-#                print ("left: ", left);
-#                print ("right: ", right);
-#                print ("top: ", top);
-#                print ("bottom: ", bottom);
-            P = assignP(P,p, valid, lookup, s);
-
-
-
-# policy iteration                    
+#----------------------- policy iteration                    
 #policy = pI.policyIteration(P,C);
-# value iteration 
+#------------------------ value iteration 
 policy = pI.valueIteration(P,C);
 
 Markov = P.dot(policy.T);
@@ -85,7 +37,6 @@ while (np.linalg.norm(xk - xNext, 2) >= 5e-2) and  it < 100 :
 
 expectedCost = np.sum(xNext.dot(policy).dot(np.reshape(C,(N*M*A))));
 print ("expected cost from stationary distribution: ", expectedCost);  
-
 
 y = cvx.Variable((N*M,A));
 constraints = [];
