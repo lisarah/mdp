@@ -18,7 +18,7 @@ def nonErgodicMDP(M, N, p):
     for i in range(M):
         for j in range(N):
             s = i*N + j;
-            print (s)
+#            print (s)
             left = i*N + j-1;
             right = i*N + j + 1;
             top = (i-1)*N + j;
@@ -82,7 +82,7 @@ def rectangleMDP(M,N, p):
     for i in range(M):
         for j in range(N):
             s = i*N + j;
-            print (s)
+#            print (s)
             left = i*N + j-1;
             right = i*N + j + 1;
             top = (i-1)*N + j;

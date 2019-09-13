@@ -32,7 +32,7 @@ def policyIteration(P, c):
         newpi = np.zeros((S,S*A));
         it += 1;
         Vk = np.reshape(c,(1,S*A)).dot(pik.T).dot(np.linalg.inv(np.eye(S) - gamma*P.dot(pik.T)))
-        BO = c + np.reshape(Vk.dot(P), (S,A));
+        BO = c + gamma*np.reshape(Vk.dot(P), (S,A));
         print (Vk)
         piS = np.argmin(BO, axis=1);
         for s in range(S):
@@ -60,19 +60,98 @@ def BVI(P, sP, sN, eps):
         it += 1.;
         nextL = np.min(np.reshape(L.dot(P), (S,A)), axis=1);
         nextU = np.min(np.reshape(U.dot(P), (S,A)), axis=1);
-        nextL[sP] = 1.; nextU[sP] = 1.;
-        nextU[sN] = 0.; nextL[sN] = 0.;
+        nextL[sP] = 1.; 
+        nextU[sP] = 1.;
+        nextU[sN] = 0.;
+        nextL[sN] = 0.;
         L = nextL;
         U = nextU;
         delta[int(it)] = np.max(abs(L - U));
-        if it % 1 == 0:
+        if it % 10 == 1:
             print ("Iteration ", it, " Value Inf Norm: ", delta[int(it)]);
+            print (U);
+            print (L)
 #    plt.figure();
 #    plt.plot(delta); 
 #    plt.yscale('log');
 #    plt.show();       
     print ("--------- end of BVI ---------------");
     return L, U;
+
+def BPI(P, sP, sN, eps):
+    print ("------------- BPI -------------");
+    maxiter = 100;
+    S, SA = P.shape;
+    A= int(SA/S);
+#    print ("number of states: ", S);
+#    print ("number of actions: ", A);
+#    print ("Probability ", P);
+    print ("States: ", S, " Actions: ", A);
+    pkU = np.zeros((S, S*A));
+    pkL = np.zeros((S, S*A));
+    newU = np.zeros((S,S*A));
+    newL = np.zeros((S,S*A));
+    for i in range(S):
+        newL[i, i*A] = 1.;
+        newU[i, i*A] = 1.;
+
+    it = 0;
+    while np.min(np.equal(pkL, newL)) == False \
+        and np.min(np.equal(pkU, newU)) == False \
+        and it < maxiter:
+        pkU = 1.0*newU;
+        pkL = 1.0*newL;
+        it += 1;
+        
+        wU, eigU = np.linalg.eig(P.dot(pkU.T));
+        wL, eigL = np.linalg.eig(P.dot(pkL.T));
+        oneEigU = np.where(wU >=1-1e-9)[0];
+        oneEigL = np.where(wL >=1-1e-9)[0];
+#        print ("oneEigU: ", oneEigU);
+#        print ("oneEigL: ", oneEigL);
+#        print ("wU: ", wU );
+#        print ("wL: ", wL );
+        stationaryU = []; 
+        for i in oneEigU:
+            stationaryU.append(eigU[:,i]);
+        VkU = stationaryU[0];
+        for eigVec in stationaryU:
+            if eigVec[sP] > VkU[sP]:
+                VkU = 1.0*eigVec;
+        
+        stationaryL = [];
+        for i in oneEigL:
+            stationaryL.append(eigL[:,i]);
+        VkL = stationaryL[0];
+        for eigVec in stationaryL:
+            if eigVec[sP] < VkL[sP]:
+                VkL = 1.0*eigVec;
+        print ("VkU : ", VkU);
+        print ("VkL : ", VkL);
+        piU = np.argmax(np.reshape(VkU.dot(P), (S,A)), axis=1);
+        piL = np.argmin(np.reshape(VkL.dot(P), (S,A)), axis=1);
+        newU = np.zeros((S,S*A));
+        newL = np.zeros((S,S*A));
+        if (it%1) == 0:
+                print ("Iteration ",it);
+        for s in range(S):
+#            if (it%1) == 0:
+#                print ("Iteration ",it);
+#                print(piU[s]);
+#                print(piL[s]);
+            newU[s, s*A + piU[s]] = 1.;
+            newL[s, s*A + piL[s]] = 1.;
+#        print(np.sum(newU, axis = 0));
+#        print (np.sum(P.dot(newU.T), axis = 0));
+#        print (np.sum(newL, axis = 0));
+#        print (np.sum(P.dot(newL.T), axis = 0));
+    print ("converged at iteration: ", it); 
+#    print ("Maximum probability: ", VkU );
+#    print ("Minimum probability: ", VkL);
+       
+    print ("--------- end of BPI ----------");
+    return newL, newU;
+
 def valueIteration(P,c):
     print ("------------- value iteration -------------")
     S, A = c.shape;
