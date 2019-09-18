@@ -25,6 +25,9 @@ print (np.sum(UV, axis = 0));
 print ("Under approximation");
 print (np.sum(LV, axis = 0));
 
+#xU = ut.stationaryDist(P, UV, state = 0, isMax = True);
+
+#xL =  ut.stationaryDist(P, UV, state = 0, isMax = False);
 
 # eigen value decomposition to find this 
 wU, eigU = np.linalg.eig(P.dot(LV.T));
@@ -52,6 +55,6 @@ for eigVec in stationaryL:
         VkL = 1.0*eigVec;
         
 print ("upper bounding stationary distribution ")
-print (abs(VkU));
+print ((xU));
 print ("Lower bounding stationray distribuiton ")
-print (abs(VkL));
+#print ((xL));

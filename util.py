@@ -6,11 +6,49 @@ Created on Tue Sep 10 15:30:56 2019
 """
 import numpy as np
 
+def stationaryDist(P, pi, state = None, isMax = None):
+    # eigen value decomposition to find this 
+    w, eig = np.linalg.eig(P.dot(pi.T));
+    oneEig = np.where(w >=1-1e-9)[0];
+    stationary = []; 
+    for i in oneEig:
+        stationary.append(eig[:,i]);
+        print (eig[:,i]);
+    stationaryDist = stationary[0];
+    if state is not None:
+        for eigVec in stationary:
+            if isMax:
+                if eigVec[state] > stationaryDist[state]:
+                    stationaryDist = 1.0*eigVec;
+            else:
+                if eigVec[state] < stationaryDist[state]:
+                    stationaryDist = 1.0*eigVec;
+    return stationaryDist;
+def multipleMECMDP():
+    S = 6;
+    A = 2;   
+    P = np.zeros((S, S*A));
+    P[2, 0] = 0.999; P[4,0] = 0.001; P[1,1] = 1.; P[1,2] = 1.; P[3,3] = 1.; 
+    P[2,4] = 0.5; P[3,4] = 0.5; P[2,5] = 0.5; P[3,5] = 0.5;
+    P[2,6] = 0.5; P[3,6] = 0.5; P[2,7] = 0.5; P[3,7] = 0.5;  
+    P[4,8] = 0.5; P[5,8] = 0.5; P[4,9] = 0.5; P[5,9] = 0.5;
+    P[4,10] = 0.5; P[5,10] = 0.5; P[4,11] = 0.5; P[5,11] = 0.5;
+    C = np.array([[0, 0], [4, 5], [10, 10], [0, 0], [20, 20], [0, 0]]);  
+    return P, C;      
+"""
+    Returns a 3 state toy example that is non-ergodic. 
+    3 states S1 S2 S3, one action in each state
+    A1: S1 -> S1 probability 1
+    A2: S2 -> S1 p=0.2, S2-> S3 p = 0.8
+    A3: S3 -> S3 p = 1
+"""
 def nonErgodicToy():
     P = np.array([[1.0, 0.2, 0], [0 , 0, 0], [0, 0.8, 1.]]);
     return P;
 """
-Returns a rectangular MDP that is non-ergodic
+    Returns a rectangular MDP that is non-ergodic
+    Grid with row = M, column = N, 
+    p = main probability of going down a direction
 """
 def nonErgodicMDP(M, N, p):
     A = 4;
@@ -51,31 +89,12 @@ def nonErgodicMDP(M, N, p):
 #                    print ("bottom: ", bottom);
                 P = nonErgodic_assignP(a, SA, P,p, valid, lookup, s);   
     return P; 
-   
-def nonErgodic_assignP(a, SA, P, p, valid, lookup,s):
-    if lookup[a] not in valid:
-        P[s, SA] = 1.;
-    else:
-        P[lookup[a], SA] = p;
-        pBar = (1. - p) /(len(valid)-1);
-        for neighbour in valid:
-            if neighbour != lookup[a]:
-                P[neighbour, SA] = pBar;
-    return P;
 
-def assignP(a, SA, P, p, valid, lookup):
-    if lookup[a] not in valid:
-        newp = 1./(len(valid));
-        for neighbour in valid:
-            P[neighbour, SA] = newp;
-    else:
-        P[lookup[a], SA] = p;
-        pBar = (1. - p) /(len(valid)-1);
-        for neighbour in valid:
-            if neighbour != lookup[a]:
-                P[neighbour, SA] = pBar;
-    return P;
-
+"""
+    Returns a rectangular MDP that is non-ergodic
+    Grid with row = M, column = N, 
+    p = main probability of going down a direction
+""" 
 def rectangleMDP(M,N, p):
     A = 4;
     P = np.zeros((N*M, N*M*A));
@@ -114,4 +133,50 @@ def rectangleMDP(M,N, p):
                 P = assignP(a, SA, P,p, valid, lookup);
                 
     
+    return P;
+"""
+    given direction and look up table, derive the correct probability column
+    associated with action a, state s, state-action index SA, 
+    and probability p of taking valid action
+    
+    ** this one assigns probability 1 to return to state s if 
+    direction is not valid
+    lookup = the dictionary to look up direction corresponding to action
+             is usually lookup = {0: left, 1: right, 2: top, 3: bottom}
+    
+    valid = valid directions to go for this state
+"""   
+def nonErgodic_assignP(a, SA, P, p, valid, lookup,s):
+    if lookup[a] not in valid:
+        P[s, SA] = 1.;
+    else:
+        P[lookup[a], SA] = p;
+        pBar = (1. - p) /(len(valid)-1);
+        for neighbour in valid:
+            if neighbour != lookup[a]:
+                P[neighbour, SA] = pBar;
+    return P;
+"""
+    given direction and look up table, derive the correct probability column
+    associated with action a, state s, state-action index SA, 
+    and probability p of taking valid action
+    
+    ** if direction is not valid, returns equal probability of going
+    to neighbouring states
+    lookup = the dictionary to look up direction corresponding to action
+             is usually lookup = {0: left, 1: right, 2: top, 3: bottom}
+    
+    valid = valid directions to go for this state
+"""   
+def assignP(a, SA, P, p, valid, lookup):
+    if lookup[a] not in valid:
+        newp = 1./(len(valid));
+        for neighbour in valid:
+            P[neighbour, SA] = newp;
+    else:
+        P[lookup[a], SA] = p;
+        pBar = (1. - p) /(len(valid)-1);
+        for neighbour in valid:
+            if neighbour != lookup[a]:
+                P[neighbour, SA] = pBar;
     return P;

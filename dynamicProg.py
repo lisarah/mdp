@@ -5,7 +5,7 @@ Created on Thu Sep  5 16:21:26 2019
 @author: craba
 """
 import numpy as np
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 #----------------------------------------------------------------------------#
 """
 Policy Iteration
@@ -15,7 +15,7 @@ Output: pi  - optimal policy - S x A
         
 uses policy iteration to compute the optimal policy defined by (P,c)
 """
-gamma = 0.9;
+gamma = 1.0;
 def policyIteration(P, c):
     S, A = c.shape;
 #    print (S, "    ", A)
@@ -152,30 +152,93 @@ def BPI(P, sP, sN, eps):
     print ("--------- end of BPI ----------");
     return newL, newU;
 
-def valueIteration(P,c):
+def valueIteration(P,c, minimize = True):
     print ("------------- value iteration -------------")
+    plt.close('all');
     S, A = c.shape;
+    VHist  = np.zeros((S,1000));
 #    print (S, "    ", A)
     # generate a policy that always chooses the first action
     pik = np.zeros((S));
     newpi = np.zeros((S,S*A));
-    Vk = np.min(c, axis  =1);
-    Vnext = np.zeros(S);
-    it = 0;
-    eps = 1e-5;
-    while np.linalg.norm(Vk - Vnext, 2) >= eps:
-        Vk  = 1.0*Vnext;
+    Vk = np.zeros(S);
+    Vnext = np.min(c, axis  =1);
+    it = 1;
+    eps = 1e-4;
+    while stoppingCriterion(Vnext/it, Vk) >= eps and it < 1000:
+        Vk  = 1.0*Vnext/it;
+        VHist[:, it-1]= Vk;
         it += 1;
 #        Vk = np.reshape(c,(1,S*A)).dot(pik.T).dot(np.linalg.inv(np.eye(S) - gamma*P.dot(pik.T)))
-        BO = c + gamma*np.reshape(Vk.dot(P), (S,A));
-        Vnext = np.min(BO, axis = 1);
-        pik= np.argmin(BO, axis = 1);
-        if it%10 == 0:
-            print ("norm ", np.linalg.norm(Vk - Vnext, 2));
+        BO = c + gamma*np.reshape(Vnext.dot(P), (S,A));
+        if minimize:
+            Vnext = np.min(BO, axis = 1);
+            pik= np.argmin(BO, axis = 1);
+        else:
+            Vnext = np.max(BO, axis = 1);
+            pik= np.argmax(BO, axis = 1);
+        if it%100 == 0:
+            print ("stopping criteria ", stoppingCriterion(Vnext/it, Vk));
+#            print ("V difference ", Vnext - Vk);
     for s in range(S):
         newpi[s, s*A + pik[s]] = 1.;
 
+    plt.figure();
+    plt.plot(np.linalg.norm(VHist, ord = 2, axis = 0));
+    plt.yscale('log');
+    plt.grid();
+    plt.show();
     print ("converged at iteration: ", it) 
+    print ("Final value function: ", Vk)
     print ("--------- end of value iteration ---------------")
     return newpi;
 
+def stoppingCriterion(V, VLast):
+    w =   V - VLast;
+#    if np.min(w)< 0:
+#        print ("Something's wrong in stopping criterion");
+    return np.max(w) - np.min(w);
+
+def game_VI(P, c, S1, S2):
+    print ("------------- value iteration -------------")
+    plt.close('all');
+    S, A = c.shape;
+    VHist  = np.zeros((S,1000));
+#    print (S, "    ", A)
+    # generate a policy that always chooses the first action
+    pik = np.zeros((S));
+    newpi = np.zeros((S,S*A));
+    Vk = np.zeros(S);
+    Vnext = np.min(c, axis=1);
+#    print (Vnext);
+    it = 1;
+    eps = 1e-4;
+    while stoppingCriterion(Vnext/it, Vk) >= eps and it < 1000:
+        Vk  = 1.0*Vnext/it;
+        VHist[:, it-1]= Vk;
+        it += 1;
+#        Vk = np.reshape(c,(1,S*A)).dot(pik.T).dot(np.linalg.inv(np.eye(S) - gamma*P.dot(pik.T)))
+        BO = c + gamma*np.reshape(Vnext.dot(P), (S,A));
+        for s in range(S):
+#            print (Vnext)
+            if s in S1:
+                Vnext[s] = np.min(BO[s, :]);
+                pik[s] = np.argmin(BO[s, :]);
+            else: # s is maximizing state
+                Vnext[s] = np.max(BO[s, :]);
+                pik[s] = np.argmax(BO[s, :]);
+        if it%100 == 0:
+            print ("stopping criteria ", stoppingCriterion(Vnext/it, Vk));
+#            print ("V difference ", Vnext - Vk);
+    for s in range(S):
+        newpi[s, s*A + int(pik[s])] = 1.;
+
+    plt.figure();
+    plt.plot(np.linalg.norm(VHist, ord = 2, axis = 0));
+    plt.yscale('log');
+    plt.grid();
+    plt.show();
+    print ("converged at iteration: ", it) 
+    print ("Final value function: ", Vk)
+    print ("--------- end of value iteration ---------------")
+    return (np.sum(Vk)/S);
