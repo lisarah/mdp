@@ -24,6 +24,26 @@ def stationaryDist(P, pi, state = None, isMax = None):
                 if eigVec[state] < stationaryDist[state]:
                     stationaryDist = 1.0*eigVec;
     return stationaryDist;
+def value(P,pi):
+    return True;
+
+def simpleMDP():
+    P = np.zeros((2, 4));
+    #(s1, a1) = (0.1, 0.9)
+    P[0, 0] = 0.1; P[1, 0] = 0.9;
+    #(s1, a2) = (0.9, 0.1)
+    P[0, 1] = 0.9; P[1, 1] = 0.1;
+    #(s2, a1) = (0.1, 0.9)
+    P[0, 2] = 0.1; P[1, 2] = 0.9;
+    #(s2, a2) = (0.5, 0.5)
+    P[0, 3] = 0.5; P[1, 3] = 0.5;
+    
+    C = np.array([[1, 2], [3,4]]);
+    lowEps = np.array([[-0.6, -0.7], [-0.5, -1.]]);
+    highEps = np.array([[0.6, 0.7], [0.5, 1.]]);
+    
+    return P, C, lowEps, highEps;
+    
 def multipleMECMDP():
     S = 6;
     A = 2;   

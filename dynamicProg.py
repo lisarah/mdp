@@ -152,11 +152,12 @@ def BPI(P, sP, sN, eps):
     print ("--------- end of BPI ----------");
     return newL, newU;
 
-def valueIteration(P,c, minimize = True):
+def valueIteration(P,c, minimize = True, returnV = False, g = 1.):
     print ("------------- value iteration -------------")
     plt.close('all');
     S, A = c.shape;
-    VHist  = np.zeros((S,1000));
+    Iterations = 100000;
+    VHist  = np.zeros((S,Iterations));
 #    print (S, "    ", A)
     # generate a policy that always chooses the first action
     pik = np.zeros((S));
@@ -165,12 +166,12 @@ def valueIteration(P,c, minimize = True):
     Vnext = np.min(c, axis  =1);
     it = 1;
     eps = 1e-4;
-    while stoppingCriterion(Vnext/it, Vk) >= eps and it < 1000:
+    while stoppingCriterion(Vnext/it, Vk) >= eps and it < Iterations:
         Vk  = 1.0*Vnext/it;
         VHist[:, it-1]= Vk;
         it += 1;
 #        Vk = np.reshape(c,(1,S*A)).dot(pik.T).dot(np.linalg.inv(np.eye(S) - gamma*P.dot(pik.T)))
-        BO = c + gamma*np.reshape(Vnext.dot(P), (S,A));
+        BO = c + g*np.reshape(Vnext.dot(P), (S,A));
         if minimize:
             Vnext = np.min(BO, axis = 1);
             pik= np.argmin(BO, axis = 1);
@@ -191,7 +192,10 @@ def valueIteration(P,c, minimize = True):
     print ("converged at iteration: ", it) 
     print ("Final value function: ", Vk)
     print ("--------- end of value iteration ---------------")
-    return newpi;
+    if returnV:
+        return Vk*it;
+    else:
+        return newpi;
 
 def stoppingCriterion(V, VLast):
     w =   V - VLast;
