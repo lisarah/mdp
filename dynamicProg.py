@@ -21,7 +21,6 @@ def policyIteration(P, c):
 #    print (S, "    ", A)
     # generate a policy that always chooses the first action
     pik = np.zeros((S, S*A));
-
     newpi = np.zeros((S,S*A));
     for i in range(S):
         newpi[i, i*A] = 1.;
@@ -184,19 +183,51 @@ def valueIteration(P,c, minimize = True, returnV = False, g = 1.):
     for s in range(S):
         newpi[s, s*A + pik[s]] = 1.;
 
-    plt.figure();
-    plt.plot(np.linalg.norm(VHist, ord = 2, axis = 0));
-    plt.yscale('log');
-    plt.grid();
-    plt.show();
-    print ("converged at iteration: ", it) 
-    print ("Final value function: ", Vk)
+#    plt.figure();
+#    plt.plot(np.linalg.norm(VHist, ord = 2, axis = 0));
+#    plt.yscale('log');
+#    plt.grid();
+#    plt.show();
+#    print ("converged at iteration: ", it) 
+#    print ("Final value function: ", Vk)
     print ("--------- end of value iteration ---------------")
     if returnV:
         return Vk*it;
     else:
         return newpi;
+def discounted_valueIteration(P,c, minimize = True, g = 1.):
+    print ("------------- value iteration -------------")
+    plt.close('all');
+    S, A = c.shape;
+    Iterations = 100000;
+    VHist  = np.zeros((S,Iterations));
+#    print (S, "    ", A)
+    # generate a policy that always chooses the first action
+    pik = np.zeros((S));
+    newpi = np.zeros((S,S*A));
+    Vk = np.zeros(S);
+    Vnext = np.min(c, axis  =1);
+    it = 1;
+    eps = 1e-8;
+    while np.linalg.norm(Vk - Vnext, ord = 2) >= eps and it < Iterations:
+        Vk  = 1.0*Vnext;
+        VHist[:, it-1]= Vk;
+        it += 1;
+        BO = c + g*np.reshape(Vnext.dot(P), (S,A));
+        if minimize:
+            Vnext = np.min(BO, axis = 1);
+            pik= np.argmin(BO, axis = 1);
+        else:
+            Vnext = np.max(BO, axis = 1);
+            pik= np.argmax(BO, axis = 1);
+        if it%100 == 0:
+#            print ("stopping criteria ", stoppingCriterion(Vnext/it, Vk));
+            print ("V difference ", Vnext - Vk);
+    for s in range(S):
+        newpi[s, s*A + pik[s]] = 1.;
 
+    print ("--------- end of value iteration ---------------")
+    return Vk;
 def stoppingCriterion(V, VLast):
     w =   V - VLast;
 #    if np.min(w)< 0:

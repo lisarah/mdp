@@ -24,8 +24,19 @@ def stationaryDist(P, pi, state = None, isMax = None):
                 if eigVec[state] < stationaryDist[state]:
                     stationaryDist = 1.0*eigVec;
     return stationaryDist;
-def value(P,pi):
-    return True;
+
+def value(P,pi,C, gamma, N = 100):
+    # pi : S \times SA
+    S, SA = P.shape;
+    M = P.dot(pi.T);
+
+    Vt = np.zeros(S);
+     
+    for i in range(N):
+        VNext = np.reshape(C, (SA)).dot(pi.T) + gamma*Vt.dot(M);
+        Vt  = VNext;
+        
+    return Vt;
 
 def simpleMDP():
     P = np.zeros((2, 4));
