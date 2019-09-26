@@ -5,8 +5,12 @@ Created on Tue Sep 10 15:30:56 2019
 @author: craba
 """
 import numpy as np
+"""
+Determine the stationary distribution for a given policy by using 
+SVD decomposition
 
-def stationaryDist(P, pi, state = None, isMax = None):
+"""
+def stationaryDist_SVD(P, pi, state = None, isMax = None):
     # eigen value decomposition to find this 
     w, eig = np.linalg.eig(P.dot(pi.T));
     oneEig = np.where(w >=1-1e-9)[0];
@@ -24,7 +28,28 @@ def stationaryDist(P, pi, state = None, isMax = None):
                 if eigVec[state] < stationaryDist[state]:
                     stationaryDist = 1.0*eigVec;
     return stationaryDist;
+"""
+Determine the stationary distribution for a given policy from definition
+of stationary distributions -- iterate Ppi.T for a very long time 
+and see what the final distribution is
 
+"""
+def stationaryDist(P,pi, T = 100):
+    S,SA = P.shape;
+    Markov = P.dot(pi.T);
+    xk = np.ones(S) /S;
+    #xk[0] = 1.;
+    xNext = (Markov).dot(xk);
+#    print ("xNext = ", xNext);
+#    print ("xk = ", xk);
+    it = 0;
+    while (np.linalg.norm(xk - xNext, 2) >= 1e-8) and  it < T :
+#        print ("in while loop",np.linalg.norm(xk - xNext, 2)  );
+        xk = 1.0*xNext;
+        xNext = (Markov).dot(xk);
+        it += 1;
+        
+    return xNext;
 def value(P,pi,C, gamma, N = 100):
     # pi : S \times SA
     S, SA = P.shape;
