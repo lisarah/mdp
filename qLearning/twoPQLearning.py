@@ -4,7 +4,6 @@ Created on Wed Sep 25 16:25:45 2019
 
 @author: craba
 """
-
 import util as ut
 import numpy as np
 import matplotlib.pyplot as plt
