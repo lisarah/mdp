@@ -1,0 +1,143 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Oct 17 13:44:38 2019
+
+@author: sarahli
+"""
+import util as ut
+import numpy as np
+import matplotlib.pyplot as plt
+import dynamicProg as dp
+import cvxpy as cvx
+plt.close('all')
+N = 3; 
+M = 3;
+S = N*M; A = 4;
+gamma = 0.5;
+Players = 10;
+P = ut.rectangleMDP(N,M,0.7);
+"""
+    Cost model:
+        player x: C = C1 + C2.dot(y)
+        player y: C = C1 + C2.dot(x)
+"""
+C1 = 2*np.random.rand(S,A);
+C2 = 0.1*np.diag(np.random.rand(S*A));
+T = 1000;
+Samples = 5;
+timeLine = np.arange(0,T);
+#print (C1);
+Vx = np.zeros((S,T,Samples, Players)); 
+for sample in range(Samples):
+    #-------------------- propagating a random policy -------------------#
+    pi = np.zeros((S,Players)); 
+    density = np.ones((S, Players))/S;
+    
+    for t in range(T-1):
+        # calculate resulting state-action density    
+        x = np.zeros((S*A, Players));
+        for player in range(Players):
+            # determine new state-action pair
+            for i in range(S):
+                x[i*A + int(pi[i, player]), player] = density[i, player];
+        # determining new policy for each player        
+        for player in range(Players):
+            if player == 0:
+                newCost = 1.0*C1;
+                # determine cost for player 0
+                for opponent in range(Players):
+                    if opponent != player:
+                        newCost += np.reshape(C2.dot(x[:,opponent]), (S,A));
+                Vx[:,t+1, sample, player] = np.min(newCost + gamma*np.reshape(Vx[:,t, sample, player].T.dot(P), (S,A)), axis = 1);
+                pi[:, player] = np.argmin(newCost + gamma*np.reshape(Vx[:,t+1, sample, player].T.dot(P), (S,A)), axis = 1);
+            else:
+                newCost = 1.0*C1;
+                # determine new cost
+                for opponent in range(Players):
+                    if opponent != player:
+                        newCost += np.reshape(C2.dot(x[:,opponent]), (S,A));
+                pi[:, player] = np.random.randint(0, A, S);
+                QFunc =   newCost + gamma*np.reshape(Vx[:,t, sample, player].T.dot(P), (S,A));
+                for s in range(S):
+                    Vx[s,t+1, sample, player] = QFunc[s,int(pi[s,player])];
+               
+            density[:,player] =  P.dot(x[:, player]);
+
+##--------------- If every player is doing value iteration -------------#
+            
+#-------------------- propagating a random policy -------------------#
+pi = np.zeros((S,Players)); 
+density = np.ones((S, Players))/S;
+Vx_VI = np.zeros((S,T, Players)); 
+
+for t in range(T-1):
+    # calculate resulting state-action density    
+    x = np.zeros((S*A, Players));
+    for player in range(Players):
+        # determine new state-action pair
+        for i in range(S):
+            x[i*A + int(pi[i, player]), player] = density[i, player];
+    # determining new policy for each player        
+    for player in range(Players):
+        newCost = 1.0*C1;
+        # determine cost for player 0
+        for opponent in range(Players):
+            if opponent != player:
+                newCost += np.reshape(C2.dot(x[:,opponent]), (S,A));
+        Vx_VI[:,t+1, player] = np.min(newCost + gamma*np.reshape(Vx_VI[:,t, player].T.dot(P), (S,A)), axis = 1);
+        pi[:, player] = np.argmin(newCost + gamma*np.reshape(Vx_VI[:,t+1, player].T.dot(P), (S,A)), axis = 1);
+        density[:,player] =  P.dot(x[:, player]);
+#
+##--------------- If other players are doing policy iteration -------------#
+pi = np.zeros((S,Players)); 
+density = np.ones((S, Players))/S;
+Vx_PI = np.zeros((S,T, Players)); 
+
+for t in range(T-1):
+    # calculate resulting state-action density    
+    x = np.zeros((S*A, Players));
+    for player in range(Players):
+        # determine new state-action pair
+        for i in range(S):
+            x[i*A + int(pi[i, player]), player] = density[i, player];
+    # determining new policy for each player        
+    for player in range(Players):
+        newCost = 1.0*C1;
+        # determine cost for player 0
+        for opponent in range(Players):
+            if opponent != player:
+                newCost += np.reshape(C2.dot(x[:,opponent]), (S,A));
+        if player == 0:
+            Vx_PI[:,t+1, player] = np.min(newCost + gamma*np.reshape(Vx_PI[:,t, player].T.dot(P), (S,A)), axis = 1);
+        else:
+            piMat = np.zeros((S,S*A));
+            newCostVec = np.zeros((S));
+            for state in range(S):
+                piMat[state, int(pi[state, player])] = 1.;
+                newCostVec[state] = newCost[state, int(pi[state, player])];
+            Vx_PI[:,t+1, player] = np.linalg.inv((np.eye(S) - gamma*P.dot(piMat.T))).dot(newCostVec);
+        pi[:,player] = np.argmin(newCost + gamma*np.reshape(Vx_PI[:,t+1, player].T.dot(P), (S,A)), axis = 1);
+        density[:,player] =  P.dot(x[:, player]);
+#------------------ propagating upper and lower bounds -----------------#
+C_lower = 1.0*C1; 
+C_upper = C1+ Players*np.reshape(C2.dot(np.ones(S*A)), (S,A));
+#print (C1);
+Vupper = np.zeros((S,T)); Vlower = np.zeros((S,T));
+for t in range(T-1):
+    Vupper[:,t+1] = np.min(C_upper+ gamma*np.reshape(Vupper[:,t].T.dot(P), (S,A)), axis = 1);
+    Vlower[:,t+1] = np.min(C_lower+ gamma*np.reshape(Vlower[:,t].T.dot(P), (S,A)), axis = 1); 
+#------------------- graph of results ---------------------------_#
+plt.figure();
+plt.plot(timeLine, np.linalg.norm(Vupper, ord = 1, axis = 0), label= "upper bound")
+plt.plot(timeLine, np.linalg.norm(Vlower, ord = 1, axis = 0), label= "lower bound");
+for sample in range(Samples):
+    plt.plot(timeLine, np.linalg.norm(Vx[:,:,sample, 0], ord = 1, axis = 0));
+
+plt.plot(timeLine, np.linalg.norm(Vx_VI[:,:,0], ord = 1, axis = 0), label= "value iteration");
+plt.plot(timeLine, np.linalg.norm(Vx_PI[:,:,0], ord = 1, axis = 0), label= "policy iteration");
+plt.plot(timeLine, np.linalg.norm(Vx_PI[:,:,1], ord = 1, axis = 0), label= "policy iteration - other player");
+plt.legend(); plt.grid();
+plt.show()
+
+#def variance()
