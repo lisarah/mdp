@@ -147,7 +147,7 @@ def nonErgodicMDP(M, N, p):
     return P; 
 
 """
-    Returns a rectangular MDP that is non-ergodic
+    Returns a rectangular MDP that is ergodic
     Grid with row = M, column = N, 
     p = main probability of going down a direction
 """ 

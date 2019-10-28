@@ -6,6 +6,27 @@ Created on Thu Sep  5 16:21:26 2019
 """
 import numpy as np
 import matplotlib.pyplot as plt
+
+
+def epsGreedy(Q, s, eps):
+#    print ("----------- in eps Greedy ---------------")
+    S,A = Q.shape;   
+    m = np.max(Q[s,:], axis = 0);
+    maxAction = [i for i, j in enumerate(Q[s,:]) if j == m];
+    mSize = len(maxAction);
+    
+    pol = np.ones(A)*eps/(A-mSize);
+    if mSize ==A:
+#        print ("mSize is equal to A")
+        pol = np.ones(A)/A;
+    else:
+        for optAction in maxAction:
+            pol[optAction] = (1-eps)/mSize;
+#    print (pol)
+#    print ("------------ leaving eps greedy ---------------")
+    return pol;
+     
+
 #----------------------------------------------------------------------------#
 """
 Policy Iteration
