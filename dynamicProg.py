@@ -217,7 +217,7 @@ def valueIteration(P,c, minimize = True, returnV = False, g = 1.):
     else:
         return newpi;
 def discounted_valueIteration(P,c, minimize = True, g = 1.):
-    print ("------------- value iteration -------------")
+#    print ("------------- value iteration -------------")
     plt.close('all');
     S, A = c.shape;
     Iterations = 100000;
@@ -229,7 +229,7 @@ def discounted_valueIteration(P,c, minimize = True, g = 1.):
     Vk = np.zeros(S);
     Vnext = np.min(c, axis  =1);
     it = 1;
-    eps = 1e-8;
+    eps = 1e-10;
     while np.linalg.norm(Vk - Vnext, ord = 2) >= eps and it < Iterations:
         Vk  = 1.0*Vnext;
         VHist[:, it-1]= Vk;
@@ -247,7 +247,7 @@ def discounted_valueIteration(P,c, minimize = True, g = 1.):
     for s in range(S):
         newpi[s, s*A + pik[s]] = 1.;
 
-    print ("--------- end of value iteration ---------------")
+#    print ("--------- end of value iteration ---------------")
     return Vk;
 def stoppingCriterion(V, VLast):
     w =   V - VLast;

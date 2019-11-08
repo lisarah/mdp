@@ -22,13 +22,16 @@ P = ut.rectangleMDP(N,M,0.7);
         player x: C = C1 + C2.dot(y)
         player y: C = C1 + C2.dot(x)
 """
-C1 = 2*np.random.rand(S,A);
+C1 = np.random.rand(S,A);
 C2 = 0.1*np.diag(np.random.rand(S*A));
 T = 1000;
 Samples = 5;
 timeLine = np.arange(0,T);
 #print (C1);
 Vx = np.zeros((S,T,Samples, Players)); 
+Vl_random  = np.zeros((S,T));
+Vu_random = np.zeros((S,T));
+unknownP =[8,4];
 for sample in range(Samples):
     #-------------------- propagating a random policy -------------------#
     pi = np.zeros((S,Players)); 
@@ -37,10 +40,14 @@ for sample in range(Samples):
     for t in range(T-1):
         # calculate resulting state-action density    
         x = np.zeros((S*A, Players));
+        C_l = 1.0*C1;
         for player in range(Players):
             # determine new state-action pair
             for i in range(S):
                 x[i*A + int(pi[i, player]), player] = density[i, player];
+            if player not in unknownP:
+                C_l += np.reshape(C2.dot(x[:,player]), (S,A));
+        C_u = C_l + len(unknownP)*np.reshape(C2.dot(np.ones(S*A)), (S,A));
         # determining new policy for each player        
         for player in range(Players):
             if player == 0:
@@ -63,21 +70,34 @@ for sample in range(Samples):
                     Vx[s,t+1, sample, player] = QFunc[s,int(pi[s,player])];
                
             density[:,player] =  P.dot(x[:, player]);
-
+        Vl_random[:,t+1] = np.min(C_l + gamma*np.reshape(Vl_random[:,t].T.dot(P), (S,A)), axis = 1);
+        Vu_random[:,t+1] = np.min(C_u + gamma*np.reshape(Vu_random[:,t].T.dot(P), (S,A)), axis = 1);
+#------------------- graph of results ---------------------------_#
+plt.figure();
+plt.plot(timeLine, np.linalg.norm(Vu_random, ord = 1, axis = 0), label= "upper bound")
+plt.plot(timeLine, np.linalg.norm(Vl_random, ord = 1, axis = 0), label= "lower bound");
+for sample in range(Samples):
+    plt.plot(timeLine, np.linalg.norm(Vx[:,:,sample, 0], ord = 1, axis = 0));
+plt.legend(); plt.grid();
+plt.show()
 ##--------------- If every player is doing value iteration -------------#
-            
-#-------------------- propagating a random policy -------------------#
 pi = np.zeros((S,Players)); 
 density = np.ones((S, Players))/S;
 Vx_VI = np.zeros((S,T, Players)); 
+Vl_VI  = np.zeros((S,T));
+Vu_VI = np.zeros((S,T));
 
 for t in range(T-1):
     # calculate resulting state-action density    
     x = np.zeros((S*A, Players));
+    C_l = 1.0*C1;
     for player in range(Players):
         # determine new state-action pair
         for i in range(S):
             x[i*A + int(pi[i, player]), player] = density[i, player];
+        if player not in unknownP:
+            C_l += np.reshape(C2.dot(x[:,player]), (S,A));
+    C_u = C_l + len(unknownP)*np.reshape(C2.dot(np.ones(S*A)), (S,A));          
     # determining new policy for each player        
     for player in range(Players):
         newCost = 1.0*C1;
@@ -88,19 +108,32 @@ for t in range(T-1):
         Vx_VI[:,t+1, player] = np.min(newCost + gamma*np.reshape(Vx_VI[:,t, player].T.dot(P), (S,A)), axis = 1);
         pi[:, player] = np.argmin(newCost + gamma*np.reshape(Vx_VI[:,t+1, player].T.dot(P), (S,A)), axis = 1);
         density[:,player] =  P.dot(x[:, player]);
-#
-##--------------- If other players are doing policy iteration -------------#
+        Vl_VI[:,t+1] = np.min(C_l + gamma*np.reshape(Vl_VI[:,t].T.dot(P), (S,A)), axis = 1);
+        Vu_VI[:,t+1] = np.min(C_u + gamma*np.reshape(Vu_VI[:,t].T.dot(P), (S,A)), axis = 1);
+plt.figure();
+plt.plot(timeLine, np.linalg.norm(Vu_VI, ord = 1, axis = 0), label= "upper bound")
+plt.plot(timeLine, np.linalg.norm(Vl_VI, ord = 1, axis = 0), label= "lower bound");
+plt.plot(timeLine, np.linalg.norm(Vx_VI[:,:,0], ord = 1, axis = 0), label= "value iteration");
+plt.legend(); plt.grid();
+plt.show()
+###--------------- If other players are doing policy iteration -------------#
 pi = np.zeros((S,Players)); 
 density = np.ones((S, Players))/S;
 Vx_PI = np.zeros((S,T, Players)); 
-
+Vl_PI  = np.zeros((S,T));
+Vu_PI = np.zeros((S,T));
+unknownP =[8,4];
 for t in range(T-1):
     # calculate resulting state-action density    
     x = np.zeros((S*A, Players));
+    C_l = 1.0*C1;
     for player in range(Players):
         # determine new state-action pair
         for i in range(S):
             x[i*A + int(pi[i, player]), player] = density[i, player];
+        if player not in unknownP:
+            C_l += np.reshape(C2.dot(x[:,player]), (S,A));
+    C_u = C_l + len(unknownP)*np.reshape(C2.dot(np.ones(S*A)), (S,A));
     # determining new policy for each player        
     for player in range(Players):
         newCost = 1.0*C1;
@@ -119,6 +152,15 @@ for t in range(T-1):
             Vx_PI[:,t+1, player] = np.linalg.inv((np.eye(S) - gamma*P.dot(piMat.T))).dot(newCostVec);
         pi[:,player] = np.argmin(newCost + gamma*np.reshape(Vx_PI[:,t+1, player].T.dot(P), (S,A)), axis = 1);
         density[:,player] =  P.dot(x[:, player]);
+    Vl_PI[:,t+1] = np.min(C_l + gamma*np.reshape(Vl_PI[:,t].T.dot(P), (S,A)), axis = 1);
+    Vu_PI[:,t+1] = np.min(C_u + gamma*np.reshape(Vu_PI[:,t].T.dot(P), (S,A)), axis = 1);
+plt.figure();
+plt.plot(timeLine, np.linalg.norm(Vu_PI, ord = 1, axis = 0), label= "upper bound")
+plt.plot(timeLine, np.linalg.norm(Vl_PI, ord = 1, axis = 0), label= "lower bound");
+plt.plot(timeLine, np.linalg.norm(Vx_PI[:,:,0], ord = 1, axis = 0), label= "policy iteration");
+#plt.plot(timeLine, np.linalg.norm(Vx_PI[:,:,1], ord = 1, axis = 0), label= "policy iteration - other player");
+plt.legend(); plt.grid();
+plt.show()
 #------------------ propagating upper and lower bounds -----------------#
 C_lower = 1.0*C1; 
 C_upper = C1+ Players*np.reshape(C2.dot(np.ones(S*A)), (S,A));
@@ -128,16 +170,16 @@ for t in range(T-1):
     Vupper[:,t+1] = np.min(C_upper+ gamma*np.reshape(Vupper[:,t].T.dot(P), (S,A)), axis = 1);
     Vlower[:,t+1] = np.min(C_lower+ gamma*np.reshape(Vlower[:,t].T.dot(P), (S,A)), axis = 1); 
 #------------------- graph of results ---------------------------_#
-plt.figure();
-plt.plot(timeLine, np.linalg.norm(Vupper, ord = 1, axis = 0), label= "upper bound")
-plt.plot(timeLine, np.linalg.norm(Vlower, ord = 1, axis = 0), label= "lower bound");
-for sample in range(Samples):
-    plt.plot(timeLine, np.linalg.norm(Vx[:,:,sample, 0], ord = 1, axis = 0));
-
-plt.plot(timeLine, np.linalg.norm(Vx_VI[:,:,0], ord = 1, axis = 0), label= "value iteration");
-plt.plot(timeLine, np.linalg.norm(Vx_PI[:,:,0], ord = 1, axis = 0), label= "policy iteration");
-plt.plot(timeLine, np.linalg.norm(Vx_PI[:,:,1], ord = 1, axis = 0), label= "policy iteration - other player");
-plt.legend(); plt.grid();
-plt.show()
+#plt.figure();
+#plt.plot(timeLine, np.linalg.norm(Vu, ord = 1, axis = 0), label= "upper bound")
+#plt.plot(timeLine, np.linalg.norm(Vl, ord = 1, axis = 0), label= "lower bound");
+##for sample in range(Samples):
+##    plt.plot(timeLine, np.linalg.norm(Vx[:,:,sample, 0], ord = 1, axis = 0));
+#
+##plt.plot(timeLine, np.linalg.norm(Vx_VI[:,:,0], ord = 1, axis = 0), label= "value iteration");
+#plt.plot(timeLine, np.linalg.norm(Vx_PI[:,:,0], ord = 1, axis = 0), label= "policy iteration");
+##plt.plot(timeLine, np.linalg.norm(Vx_PI[:,:,1], ord = 1, axis = 0), label= "policy iteration - other player");
+#plt.legend(); plt.grid();
+#plt.show()
 
 #def variance()
