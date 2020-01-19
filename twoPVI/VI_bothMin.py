@@ -23,9 +23,9 @@ P = ut.rectangleMDP(N,M,0.7);
 """
 C1 = np.random.rand(S,A);
 C2 = 0.3*np.random.rand(S,A);
-T = 50;
+T =100;
 
-Samples = 4;
+Samples = 10;
 timeLine = np.arange(0,T);
 
 Vx = np.zeros((S,T,Samples)); 
@@ -163,4 +163,33 @@ plt.ylabel("$\||V^k\||_2$")
 plt.legend(); plt.grid();
 plt.show()
 
-#def variance()
+
+# scatter plots
+plotTime = [1, int((T/2)-1), T-1];
+textFont = 10;
+fig, axes = plt.subplots(3,1, sharex = True); axInd = 0;
+maxY = 1.05*np.max(Vupper);
+minY = 0.99*np.min(Vlower);
+for t in plotTime:
+    stateArr = np.linspace(0,S,S, endpoint = False)+1;
+#    ax = plt.subplot(111);
+    axes[axInd].set_title("k = %d"%t, fontsize=textFont);
+    axes[axInd].errorbar(stateArr, Vx[:, t, 0], lolims = True, 
+                 yerr = Vupper[:,t] - Vx[:, t, 0], 
+                 fmt='none', 
+                 ecolor='lightblue', elinewidth=5, capsize=0, capthick = 0, dash_capstyle = 'round');
+    axes[axInd].errorbar(stateArr, Vx[:, t, 0], uplims = True, 
+                 yerr =Vx[:, t, 0] - Vlower[:,t], 
+                 fmt='none',
+                 ecolor='lightblue', elinewidth=5, capsize=0, capthick = 0, dash_capstyle = 'round');
+    for sample in range(0,Samples):
+        axes[axInd].errorbar(stateArr, Vx[:, t, sample], fmt = 'o:', label = "$\gamma = $%0.2f"%(1./Samples*(sample+1)));
+    axes[axInd].set_ylim([minY, maxY]);
+    axInd += 1;
+axes[2].set_xlabel('States', fontsize=textFont);
+axes[1].set_ylabel('$V(s)$', fontsize=textFont);
+fig.tight_layout()
+axes[1].legend(loc='center left', borderaxespad=0.1, bbox_to_anchor=(1, 0.5));
+plt.subplots_adjust(right=0.8)
+plt.show();
+

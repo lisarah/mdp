@@ -36,7 +36,7 @@ Output: pi  - optimal policy - S x A
         
 uses policy iteration to compute the optimal policy defined by (P,c)
 """
-gamma = 1.0;
+gamma = 0.9;
 def policyIteration(P, c):
     S, A = c.shape;
 #    print (S, "    ", A)
@@ -51,7 +51,12 @@ def policyIteration(P, c):
         pik = 1.0*newpi;
         newpi = np.zeros((S,S*A));
         it += 1;
-        Vk = np.reshape(c,(1,S*A)).dot(pik.T).dot(np.linalg.inv(np.eye(S) - gamma*P.dot(pik.T)))
+        print ((np.eye(S) - gamma*P.dot(pik.T)).shape)
+        print (pik.shape);
+        Qk = (np.linalg.inv(np.eye(S) - gamma*P.dot(pik.T))).dot(pik).dot(c.T)
+        Vk = np.zeros(S);
+        for i in range(S):
+            Vk[i] = sum(Qk[i*S:(i+1)*S]);
         BO = c + gamma*np.reshape(Vk.dot(P), (S,A));
         print (Vk)
         piS = np.argmin(BO, axis=1);
@@ -59,7 +64,8 @@ def policyIteration(P, c):
             if (it %1000) == 0:
                 print(s*A + piS[s]);
             newpi[s, s*A + piS[s]] = 1.;
-    print ("converged at iteration: ", it) 
+    print (" Converged at iteration: ", it) 
+    print (" ")
     return pik;
 
 def BVI(P, sP, sN, eps):
