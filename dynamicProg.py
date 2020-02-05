@@ -36,8 +36,7 @@ Output: pi  - optimal policy - S x A
         
 uses policy iteration to compute the optimal policy defined by (P,c)
 """
-gamma = 1.0;
-def policyIteration(P, c):
+def policyIteration(P, c, gamma):
     S, A = c.shape;
 #    print (S, "    ", A)
     # generate a policy that always chooses the first action
@@ -53,14 +52,14 @@ def policyIteration(P, c):
         it += 1;
         Vk = np.reshape(c,(1,S*A)).dot(pik.T).dot(np.linalg.inv(np.eye(S) - gamma*P.dot(pik.T)))
         BO = c + gamma*np.reshape(Vk.dot(P), (S,A));
-        print (Vk)
+#        print (Vk)
         piS = np.argmin(BO, axis=1);
         for s in range(S):
             if (it %1000) == 0:
                 print(s*A + piS[s]);
             newpi[s, s*A + piS[s]] = 1.;
     print ("converged at iteration: ", it) 
-    return pik;
+    return pik, Vk;
 
 def BVI(P, sP, sN, eps):
     print ("------------- BVI -------------");
@@ -255,7 +254,7 @@ def stoppingCriterion(V, VLast):
 #        print ("Something's wrong in stopping criterion");
     return np.max(w) - np.min(w);
 
-def game_VI(P, c, S1, S2):
+def game_VI(P, c, S1, S2, gamma):
     print ("------------- value iteration -------------")
     plt.close('all');
     S, A = c.shape;
