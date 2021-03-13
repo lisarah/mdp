@@ -5,6 +5,46 @@ Created on Tue Sep 10 15:30:56 2019
 @author: craba
 """
 import numpy as np
+
+def random_initial_policy_finite(Rows, Columns, A, T, player_num):
+    policy = np.zeros((Rows*Columns, Rows*Columns*A, T, player_num)) # S x A
+    # random initial policy
+    for t in range(T):
+        for x in range(Rows):
+            for y in range(Columns):
+                for p in [0,1]:
+                    action = np.random.randint(0, A-1)
+                    policy[x*Columns+y, (x*Columns+y)*A + action, t, p] = 1.
+    return policy
+
+def value_finite(P,pi,C, gamma):
+    # pi : S \times  \times T
+    S, SA, T = pi.shape
+    Vt = np.zeros((S, T+1))
+    Vt[:, T] = np.min(C[:,:,T], axis=1)
+    for t in range(T):
+        t_ind = T - t - 1 # T-1 ... 0
+        M = P.dot(pi[:,:,t_ind].T)
+        Vt[:,t_ind] = (np.reshape(C[:,:,t_ind], SA).dot(pi[:,:,t_ind].T) 
+                         + gamma*Vt[:,t_ind+1].dot(M))       
+    return Vt
+
+"""
+Initialize a random policy for a 2D MDP for player_num players.
+
+"""
+def random_initial_policy(Rows, Columns, A, player_num):
+    policy = np.zeros((Rows*Columns, Rows*Columns*A, player_num)) # S x A
+    # random initial policy
+    for x in range(Rows):
+        for y in range(Columns):
+            # print(f'state {x*Columns + y}')
+            # print(f'state-action {(x*Columns + y)*A}')
+            for p in [0,1]:
+                action = np.random.randint(0, A-1)
+                policy[x*Columns+y, (x*Columns+y)*A + action, p] = 1.
+    return policy
+    
 """
 Determine the stationary distribution for a given policy by using 
 SVD decomposition
@@ -50,7 +90,7 @@ def stationaryDist(P,pi, T = 100):
         it += 1;
         
     return xNext;
-def value(P,pi,C, gamma, N = 100):
+def value(P,pi,C, gamma, N = 10):
     # pi : S \times SA
     S, SA = P.shape;
     M = P.dot(pi.T);
@@ -164,13 +204,13 @@ def rectangleMDP(M,N, p):
             bottom = (i+1)*N + j;
     
             valid = [];
-            if s%N != 0:
+            if j > 0:
                 valid.append(left);
-            if s%N != N-1:
+            if j< N-1:
                 valid.append(right);
-            if s >= N:
+            if i > 0:
                 valid.append(top);
-            if s < (M*N - N):
+            if i < M-1:
                 valid.append(bottom);
     
             lookup = {0: left, 1: right, 2: top, 3: bottom};
@@ -204,7 +244,10 @@ def rectangleMDP(M,N, p):
 """   
 def nonErgodic_assignP(a, SA, P, p, valid, lookup,s):
     if lookup[a] not in valid:
-        P[s, SA] = 1.;
+        P[s, SA] = p
+        pBar = (1. - p) /(len(valid));
+        for neighbour in valid:
+                P[neighbour, SA] = pBar;
     else:
         P[lookup[a], SA] = p;
         pBar = (1. - p) /(len(valid)-1);

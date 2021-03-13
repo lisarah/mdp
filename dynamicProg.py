@@ -25,8 +25,51 @@ def epsGreedy(Q, s, eps):
 #    print (pol)
 #    print ("------------ leaving eps greedy ---------------")
     return pol;
-     
+def value_iteration_finite(P,c, minimize = True, g = 1.):
+    plt.close('all')
+    S, A, T_over = c.shape
+    T = T_over - 1
+    pik = np.zeros((S, T_over));
+    newpi = np.zeros((S,S*A, T));
+    Vk = np.zeros((S, T_over));
+    BO = 1*c
+    Vk[:, T]= np.min(BO[:,:,T], axis=1)
+    for t in range(T):
+        t_ind = T - 1 - t   # T-1 ... 0
+        BO[:,:,t_ind] +=  g*np.reshape(Vk[:,t_ind+1].dot(P), (S,A))
+        Vk[:,t_ind] = np.min(BO[:,:,t_ind], axis=1)
+        pik[:,t_ind] = np.argmin(BO[:,:,t_ind], axis=1)
+        
+    for s in range(S):
+        for t in range(T):
+            newpi[s, int(s*A + pik[s,t]), t] = 1.
 
+    return Vk, newpi
+def value_iteration(P,c, minimize = True, g = 1.):
+    plt.close('all')
+    S, A = c.shape
+    Iterations = 1e3
+    pik = np.zeros((S));
+    newpi = np.zeros((S,S*A));
+    Vk = np.zeros(S);
+    Vnext = np.min(c, axis  =1);
+    it = 1;
+    eps = 1e-10;
+    while np.linalg.norm(Vk - Vnext, ord = 2) >= eps and it < Iterations:
+        Vk  = 1.0*Vnext;
+        it += 1;
+        BO = c + g*np.reshape(Vnext.dot(P), (S,A));
+        if minimize:
+            Vnext = np.min(BO, axis = 1)
+            pik= np.argmin(BO, axis = 1)
+        else:
+            Vnext = np.max(BO, axis = 1)
+            pik= np.argmax(BO, axis = 1)
+        
+    for s in range(S):
+        newpi[s, s*A + pik[s]] = 1.
+
+    return Vk, newpi
 #----------------------------------------------------------------------------#
 """
 Policy Iteration
