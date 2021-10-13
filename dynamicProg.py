@@ -48,7 +48,7 @@ def value_iteration_finite(P,c, minimize = True, g = 1.):
 def value_iteration(P,c, minimize = True, g = 1.):
     plt.close('all')
     S, A = c.shape
-    Iterations = 1e3
+    Iterations = 50 # 1e3
     pik = np.zeros((S));
     newpi = np.zeros((S,S*A));
     Vk = np.zeros(S);
