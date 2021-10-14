@@ -21,7 +21,7 @@ def action_generator(action_mag = 1):
     actions = [np.array([0,0])]
     # cartesian system
     for angle in angles[:-1]:
-        actions.append(np.array([np.sin(angle), np.cos(angle)]))
+        actions.append(np.array([np.cos(angle), np.sin(angle)]))
 
     return actions
 
@@ -55,10 +55,10 @@ def draw_policies(s_width, s_length, policy, axis):
                        fc=color, ec=color)
     
             
-def von_mises_angle_gen(mean, kappa, N=100):
+def von_mises_angle_gen(mean, kappa, N):
     return ss.vonmises.rvs(kappa, size=N) + mean
 
-def wind_gen(mean, var, N=100):
+def wind_gen(mean, var, N):
     return ss.norm.rvs(mean, var, size=N)
 
 
@@ -68,8 +68,12 @@ def distance(x_1, x_2, y_1, y_2, length, width): # 1 norm distance
 def polar2cart(magnitude, angle):
     return magnitude *np.array([np.cos(angle), np.sin(angle)])
 
-def velocity_magnitude(magnitude, angle): # 1 norm velocity
-    vel = polar2cart(magnitude, angle)
+def arr2polar(vec):
+    cp = vec[0] + 1j * vec[1]
+    return np.angle(cp) + np.pi
+
+def velocity_magnitude(vel): # 1 norm velocity
+    # vel = polar2cart(magnitude, angle)
     return abs(vel[0]) + abs(vel[1])
 
 def neighbors(s_x, s_y, s_length, s_width):
@@ -88,22 +92,22 @@ def neighbors(s_x, s_y, s_length, s_width):
           ]
     
     if s_x  == 0: # all lefts moved
-        ns[4] = s_ind + s_length - 1
-        ns[3] = s_ind + s_length - 1
-        ns[5] = s_ind + s_length - 1
+        ns[3] = s_ind + 2 * s_length - 1 # upper left
+        ns[4] = s_ind + s_length - 1 # left
+        ns[5] = s_ind  - 1 # bottom left
     elif s_x == s_length - 1: # all rights moved
-        ns[0] = s_ind - s_length + 1
-        ns[1] = s_ind - s_length + 1
-        ns[7] = s_ind - s_length + 1
+        ns[0] = s_ind - s_length + 1 # right
+        ns[1] = s_ind + 1 # upper right
+        ns[7] = s_ind - 2 * s_length + 1 # bottom right
    
     if s_y == 0: # all bottoms moved
-        ns[5] = s_ind + (s_length) * (s_width-1)
-        ns[6] = s_ind + (s_length) * (s_width-1)
-        ns[7] = s_ind + (s_length) * (s_width-1)
+        ns[5] = s_ind - 1 + (s_length) * (s_width-1) # bottom left
+        ns[6] = s_ind + (s_length) * (s_width-1) # botoom
+        ns[7] = s_ind + 1 + (s_length) * (s_width-1) # bottom right
     elif s_y == s_width - 1: # all tops removed
-        ns[1] = s_ind - (s_length) * (s_width-1)
-        ns[2] = s_ind - (s_length) * (s_width-1)
-        ns[3] = s_ind - (s_length) * (s_width-1)
+        ns[1] = s_ind - (s_length) * (s_width-1) + 1 # top right
+        ns[2] = s_ind - (s_length) * (s_width-1) # top 
+        ns[3] = s_ind - (s_length) * (s_width-1) - 1 # top left
         
     if s_x == 0 and s_y == 0: # bottom left
         ns[5] = s_length * s_width - 1
@@ -133,62 +137,54 @@ def mdp_gen(s_length, s_width, action_mag, sample_num=100):
     angle_kappa = 1/400
     wind_mag_mean = 0.54 # m/s
     wind_variance = 0.11 # m/s 
+
+    # wind_mag_mean = 0 # m/s
+    # wind_variance = 0 # m/s 
     
-    # angle_mean = 0 # 7 degrees
-    # angle_kappa = 0
-    wind_mag_mean = 0 # m/s
-    wind_variance = 0 # m/s 
-    
-    target = (s_length-1, s_width-1)
+    target = (int(s_length/2), int(s_width/2))
+
     print(f'target is {target}')
     
     angle_bins = action_angles()
+    N = sample_num
     
     for s_x in range(s_length):
         for s_y in range(s_width):
             s_ind = s_y * s_length + s_x
             dist = distance(s_x, s_y, target[0], target[1], s_length, s_width)
             
-            for a_ind in range(A):
-                N = 100
+            for a_ind in range(A):                
                 wind_angles = von_mises_angle_gen(angle_mean, angle_kappa, N)
                 wind_mags = wind_gen(wind_mag_mean, wind_variance, N)
-                # print(f'wind_angles {wind_angles}')
-                # print(f'wind_mags {wind_mags}')
+
                 wind_vectors =  [polar2cart(wind_mags[i], wind_angles[i])
                     for i in range(N)]
-                
-                # for wind in wind_vectors:
-                #     # print(f'wind_vectors {wind_vectors}')
-                #     if np.linalg.norm(wind, 2) != 0:
-                #         print(f'non zero wind vector {wind}')
                     
                 net_vectors = [wind_vectors[i]+actions[a_ind] for i in range(N)]
-                avg_magnitude = np.mean([
-                    velocity_magnitude(net_vectors[i], net_vectors[i]) 
+                avg_magnitude = np.mean([velocity_magnitude(net_vectors[i]) 
                     for i in range(N)])
+                
                 # rewards
                 if avg_magnitude != 0:
                     R[s_ind, a_ind] = -dist / avg_magnitude
-                    # print(f'distance is {np.mean(net_vectors)}')
+                elif s_x == target[0] and s_y == target[1]:
+                    print(f'at target, action {a_ind} has positive reward')
+                    R[s_ind, a_ind] = 0
                 else:
                     R[s_ind, a_ind] = -99
                     
                 # transitions
-                net_angles = [np.angle(z) for z in net_vectors]
-                large_wind = []
-                for w_ind in range(len(wind_mags)):
-                    if wind_mags[w_ind] > 1e-3: # wind causes movement
-                        large_wind.append(w_ind)
-                        
-                net_moving = [net_angles[i] for i in large_wind] 
-                
-                freq, _ = np.histogram(net_moving, bins = angle_bins)
+                net_angles = [] # for angles with large enough wind
+                for net_vec in net_vectors:
+                    if velocity_magnitude(net_vec) > 1e-2: # wind causes movement
+                        net_angles.append(arr2polar(net_vec))
+
+                freq, _ = np.histogram(net_angles, bins = angle_bins)
                 f_ind = -1
                 for neighbor in neighbors(s_x, s_y, s_length, s_width):
                     if f_ind == -1:
                         P[neighbor, s_ind, a_ind] = (
-                            len(net_vectors) - len(large_wind)) / N
+                            len(net_vectors) - len(net_angles)) / N
                     else:
                         P[neighbor, s_ind, a_ind] = freq[f_ind] / N
                     f_ind +=1

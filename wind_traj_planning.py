@@ -14,7 +14,7 @@ import visualization as vs
 # np.random.seed(456)
 length = 9
 width = 9
-P, R = wind.mdp_gen(length, width, 0.5)   
+P, R = wind.mdp_gen(length, width, 0.1)   
 values, policy = dp.value_iteration(P, R, minimize=False, g=0.99)
 
 S = length * width
