@@ -48,17 +48,20 @@ def value_iteration_finite(P,c, minimize = True, g = 1.):
 def value_iteration(P,c, minimize = True, g = 1.):
     plt.close('all')
     S, A = c.shape
-    Iterations = 50 # 1e3
+    Iterations = 100 # 1e3
     pik = np.zeros((S));
     newpi = np.zeros((S,S*A));
-    Vk = np.zeros(S);
-    Vnext = np.min(c, axis  =1);
+    Vk = np.zeros(S)
+    if minimize:
+        Vnext = np.min(c, axis=1)
+    else:
+        Vnext = np.max(c, axis=1)
     it = 1;
     eps = 1e-10;
     while np.linalg.norm(Vk - Vnext, ord = 2) >= eps and it < Iterations:
-        Vk  = 1.0*Vnext;
+        Vk  = Vnext - np.min(Vnext);
         it += 1;
-        BO = c + g*np.reshape(Vnext.dot(P), (S,A));
+        BO = c + g*np.reshape(Vk.dot(P), (S,A));
         if minimize:
             Vnext = np.min(BO, axis = 1)
             pik= np.argmin(BO, axis = 1)

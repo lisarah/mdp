@@ -8,18 +8,36 @@ import numpy as np
 import wind_mdp.wind_generator as wind
 import dynamicProg as dp
 import matplotlib.pyplot as plt
+import visualization as vs
 
-np.random.seed(456)
-length = 50
-width = 50
+
+# np.random.seed(456)
+length = 9
+width = 9
 P, R = wind.mdp_gen(length, width, 0.5)   
-values, policy = dp.value_iteration(P, R, minimize=False, g=0.98)
+values, policy = dp.value_iteration(P, R, minimize=False, g=0.99)
 
+S = length * width
+_, A = R.shape 
 print(f'values shape {values.shape}')
-value_grid = values.reshape((length, width))
+value_grid = values.reshape((width, length))
 print(f'value grid shape {value_grid.shape}')
 
+plt.figure()
 plt.imshow(value_grid, interpolation='nearest')
 plt.colorbar()
 plt.show() 
-            
+
+
+value_list = value_grid.flatten()
+cost_plot, val_grids, _ = vs.init_grid_plot(width, length, value_list)
+
+original_policy = []
+for s in range(S):
+    pol, = np.argwhere(policy[s, s*A:(s+1)*A] == 1) 
+    # print(pol[0])
+    original_policy.append(pol[0])
+    
+    
+wind.draw_policies(width, length, original_policy, cost_plot)
+plt.show()

@@ -60,9 +60,9 @@ def draw_policies(Rows, Columns, policy, axis):
         2: (0, -1), #top, 
         3: (0, 1), #bottom
               }
-    # color = 'xkcd:coral'
+    color = 'xkcd:coral'
     # color = 'xkcd:pale yellow'
-    color = 'xkcd:lemon'
+    # color = 'xkcd:lemon'
     for x_ind in range(Columns):
         for y_ind in range(Rows):   
             # print(f'grid {x_ind}, {y_ind}')
@@ -73,8 +73,9 @@ def draw_policies(Rows, Columns, policy, axis):
                        fc=color, ec=color)
     plt.show()   
 def init_grid_plot(Rows, Columns, base_color):
-    color_map, norm = color_map_gen(base_color)
     f, axis = plt.subplots(1)
+    color_map, norm, sm = color_map_gen(base_color)
+    
     value_grids = []
     for y_ind in range(Rows):
         value_grids.append([])
@@ -85,6 +86,8 @@ def init_grid_plot(Rows, Columns, base_color):
                                                  fc=color, ec='xkcd:greyish blue'))
             axis.add_patch(value_grids[-1][-1])
     plt.axis('scaled')
+
+    plt.colorbar(sm)
     axis.xaxis.set_visible(False)  
     axis.yaxis.set_visible(False)
     return axis, value_grids, f
@@ -115,7 +118,7 @@ def draw_policies_interpolate(Rows, Columns, p_1, p_2, axis):
     
     
 # def init_grid_plot(Rows, Columns, base_color):
-#     color_map, norm = color_map_gen(base_color)
+#     color_map, norm, _ = color_map_gen(base_color)
 #     f, axis = plt.subplots(1)
 #     value_grids = []
 #     for y_ind in range(Rows):
@@ -136,7 +139,7 @@ def simulate(p1_init, p2_init, policies, base_color, value_grids,
     p1_traj = [p1_init]
     p2_traj = [p2_init]
     
-    color_map, norm = color_map_gen(base_color)
+    color_map, norm, _ = color_map_gen(base_color)
     
     for t in range(Time):
         flat_policy = np.sum(policies[:,:,t,:], axis=0)
@@ -160,6 +163,7 @@ def simulate(p1_init, p2_init, policies, base_color, value_grids,
         plt.show()
         
     plt.show()
+    
 def color_map_gen(base_color):
     v_max = np.max(base_color)
     v_min = np.min(base_color)
@@ -167,14 +171,16 @@ def color_map_gen(base_color):
     print(f'v_max = {v_max}')
     norm = mpl.colors.Normalize(vmin=v_min, vmax=v_max)
     color_map = plt.get_cmap('coolwarm')  
-    return color_map, norm
+    sm = plt.cm.ScalarMappable(cmap=color_map, norm=norm)
+    sm.set_array([])
+    return color_map, norm, sm
 
 def animate_traj(file_name, f, p1_init, p2_init, policies, base_color, value_grids, 
              A, Rows, Columns, P, Time = 100):
     p1_traj = [p1_init]
     p2_traj = [p2_init]
     
-    color_map, norm = color_map_gen(base_color)
+    color_map, norm, _ = color_map_gen(base_color)
     for t in range(Time):
         flat_policy = np.sum(policies[:,:,t,:], axis=0)
         state_1 = p1_traj[-1]
