@@ -14,7 +14,11 @@ import visualization as vs
 # np.random.seed(456)
 length = 9
 width = 9
-P, R = wind.mdp_gen(length, width, 0.1)   
+N = 100
+mag_bounds = (np.ones(N), np.ones(N) * 2)
+ang_bounds = (-np.pi * np.ones(N), np.pi * np.ones(N))
+P, R = wind.mdp_gen(length, width, 0.1, mag_bound=mag_bounds, 
+                    ang_bound=ang_bounds)   
 values, policy = dp.value_iteration(P, R, minimize=False, g=0.99)
 
 S = length * width

@@ -82,7 +82,7 @@ def init_grid_plot(Rows, Columns, base_color):
         for x_ind in range(Columns):
             R,G,B,_ = color_map(norm((base_color[y_ind*Columns+ x_ind])))
             color = [R,G,B]  
-            value_grids[-1].append(plt.Rectangle((x_ind, y_ind), 1, 1, 
+            value_grids[-1].append(plt.Rectangle((x_ind, -y_ind), 1, 1, 
                                                  fc=color, ec='xkcd:greyish blue'))
             axis.add_patch(value_grids[-1][-1])
     plt.axis('scaled')
