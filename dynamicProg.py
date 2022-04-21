@@ -74,6 +74,51 @@ def value_iteration(P,c, minimize = True, g = 1.):
         newpi[s, s*A + pik[s]] = 1.
 
     return Vk, newpi
+
+
+def value_iteration_polytopes(P, C, gamma = 0.9):
+    S, S, A, Ip = P.shape
+    V_min =  float("-inf")*np.ones(S)
+    V_max =  float("-inf")*np.ones(S)
+    C_max = np.max(C, axis=2)
+    C_min = np.min(C, axis=2) 
+    V_next_min = np.zeros(S) # float("-inf")*np.ones(S)
+    V_next_max = np.zeros(S) # float("-inf")*np.ones(S)
+    it = 0
+    pi_opt = np.zeros(S)
+    pi_rbt = np.zeros(S)
+    Iterations = 1e3
+    while np.linalg.norm(V_min - V_next_min, ord = 2) >= 1e-5 and \
+          np.linalg.norm(V_max - V_next_max, ord = 2) >= 1e-5 and \
+          it < Iterations:
+        print(f'\r it {it}         ', end = '')
+        V_min = 1 * V_next_min
+        V_max = 1 * V_next_max
+        for s in range(S):
+            q_min = np.zeros(A)
+            q_max = np.zeros(A)
+            for a in range(A):
+                q_min_a = C_min[s,a] + gamma*np.einsum('ij,i',P[:, s, a, :], V_min)
+                q_max_a = C_max[s,a] + gamma*np.einsum('ij,i',P[:, s, a, :], V_max)
+                q_min[a] = np.min(q_min_a)
+                q_max[a] = np.max(q_max_a)
+            V_next_min[s] = np.min(q_min)
+            V_next_max[s] = np.min(q_max)
+            # print(f' s = {s}, previous V: {V_min[s]} new V: {V_next_min[s]}')
+        # print (f'errors {np.linalg.norm(V_min - V_next_min, ord = 2) } {np.linalg.norm(V_max - V_next_max, ord = 2)}')
+        it += 1
+    for s in range(S):
+        q_min = np.zeros(A)
+        q_max = np.zeros(A)
+        for a in range(A):
+            q_min_a = C_min[s,a] + gamma*np.einsum('ij,i',P[:, s, a, :], V_next_min)
+            q_max_a = C_max[s,a] + gamma*np.einsum('ij,i',P[:, s, a, :], V_next_max)
+            q_min[a] = np.min(q_min_a)
+            q_max[a] = np.max(q_max_a)
+        pi_opt[s] = np.argmin(q_min)
+        pi_rbt[s] = np.argmin(q_max)
+    return V_min, V_max, pi_opt, pi_rbt
+
 #----------------------------------------------------------------------------#
 """
 Policy Iteration

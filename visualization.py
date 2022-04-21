@@ -20,7 +20,8 @@ def update_colors(grids, base_val, target_locs, last_locs, color_map, norm,
         color = [R,G,B]              
         grids[last_y][last_x].set_facecolor(color)
         
-    colors= ['xkcd:olive green', 'xkcd:bright pink']        
+    colors= ['xkcd:olive green', 'xkcd:bright pink'] 
+    colors = [f'C{i+1}' for i in range(9)]       
     for ind in range(len(target_locs)):
         next_y = (int(target_locs[ind] / Columns))
         next_x = (target_locs[ind] - next_y*Columns) 
@@ -175,39 +176,64 @@ def color_map_gen(base_color):
     sm.set_array([])
     return color_map, norm, sm
 
-def animate_traj(file_name, f, p1_init, p2_init, policies, base_color, value_grids, 
+def animate_traj(file_name, f, p_inits, policies, base_color, value_grids, 
              A, Rows, Columns, P, Time = 100):
-    p1_traj = [p1_init]
-    p2_traj = [p2_init]
+    p_iter = range(len(p_inits))
     
+    p_trajs  = [[p_inits[p]] for p in p_iter]
+    S = Rows*Columns*2
     color_map, norm, _ = color_map_gen(base_color)
+    white_color = np.zeros(base_color.shape)
     for t in range(Time):
         flat_policy = np.sum(policies[:,:,t,:], axis=0)
-        state_1 = p1_traj[-1]
-        state_2 = p2_traj[-1]
-        # print(flat_policy[state*A:(state+1)*A, 0])
-        next_action_1 = np.random.choice(
-            np.arange(0,A),p=flat_policy[state_1*A:(state_1+1)*A, 0])
-        next_action_2 = np.random.choice(
-            np.arange(0,A),p=flat_policy[state_2*A:(state_2+1)*A, 1])
-        # print(P[:, state*A+next_action])
-        next_state_1 = np.random.choice(np.arange(0,Rows*Columns), 
-                                      p=P[:, state_1*A+next_action_1])
-        next_state_2 = np.random.choice(np.arange(0,Rows*Columns), 
-                                      p=P[:, state_2*A+next_action_2])
-        p1_traj.append(next_state_1)
-        p2_traj.append(next_state_2)
+        for p_ind in p_iter:
+            cur_s = p_trajs[p_ind][-1] # pick up mode
+            next_a = np.random.choice(
+                np.arange(0,A),p=flat_policy[cur_s*A:(cur_s+1)*A, p_ind])
+            next_s = np.random.choice(np.arange(0,S), 
+                                          p=P[:, cur_s*A+next_a])
+            p_trajs[p_ind].append(next_s)
         
     def animate(i):
         if i == 0:
-            state_1 = p1_traj[0]
-            state_2 = p2_traj[0]
+            states = [p_trajs[p][0] for p in p_iter]
+            next_states = states
+            # state_1 = p1_traj[0]
+            # state_2 = p2_traj[0]
         else:
-            state_1 = p1_traj[i-1]
-            state_2 = p2_traj[i-1]
-        update_colors(value_grids, base_color, [p1_traj[i], p2_traj[i]], 
-              [state_1, state_2], color_map, norm, Rows, Columns)
+            states = [p_trajs[p][i-1] for p in p_iter]
+            next_states  = [p_trajs[p][i] for p in p_iter]
+            # state_1 = p1_traj[i-1]
+            # state_2 = p2_traj[i-1]
+        for p_ind in range(len(next_states)):
+            if next_states[p_ind] >= Rows*Columns:
+
+                next_states[p_ind] = next_states[p_ind] - Rows*Columns
+                
+        for p_ind in range(len(states)):
+            if states[p_ind] >= Rows*Columns:
+                if states[p_ind] <  Rows*Columns + Columns: # top row
+                    print(f'{p_ind} in pick up mode')
+                states[p_ind] = states[p_ind] - Rows*Columns
+            elif states[p_ind] >= Rows*Columns - Columns:  # bottom row
+                print(f'{p_ind} in delivery mode')
+        update_colors(value_grids, white_color, next_states, states, 
+                      color_map, norm, Rows, Columns)
   
-    ani = animation.FuncAnimation(f, animate, frames=range(50), interval=250)
+    ani = animation.FuncAnimation(f, animate, frames=range(Time), interval=250)
     plt.show()
     ani.save(file_name, writer='ffmpeg')  # imagemagick
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

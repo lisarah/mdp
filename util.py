@@ -6,15 +6,14 @@ Created on Tue Sep 10 15:30:56 2019
 """
 import numpy as np
 
-def random_initial_policy_finite(Rows, Columns, A, T, player_num):
-    policy = np.zeros((Rows*Columns, Rows*Columns*A, T, player_num)) # S x A
+def random_initial_policy_finite(S, A, T, player_num):
+    policy = np.zeros((S, S*A, T, player_num)) # S x A
     # random initial policy
     for t in range(T):
-        for x in range(Rows):
-            for y in range(Columns):
-                for p in [0,1]:
+        for s in range(S):
+                for p in range(player_num):
                     action = np.random.randint(0, A-1)
-                    policy[x*Columns+y, (x*Columns+y)*A + action, t, p] = 1.
+                    policy[s, (s)*A + action, t, p] = 1.
     return policy
 
 def value_finite(P,pi,C, gamma):
@@ -146,44 +145,32 @@ def nonErgodicToy():
     Grid with row = M, column = N, 
     p = main probability of going down a direction
 """
-def nonErgodicMDP(M, N, p):
-    A = 4;
-    P = np.zeros((N*M, N*M*A));
+def nonErgodicMDP(M, N, p, with_stay=False):
+    A = 5 if with_stay else 4
+    P = np.zeros((N*M, N*M*A))
     for i in range(M):
         for j in range(N):
-            s = i*N + j;
-#            print (s)
-            left = i*N + j-1;
-            right = i*N + j + 1;
-            top = (i-1)*N + j;
-            bottom = (i+1)*N + j;
-    
-            valid = [];
+            s = i*N + j
+            left = i*N + j-1
+            right = i*N + j + 1
+            top = (i-1)*N + j
+            bottom = (i+1)*N + j
+            stay = i*N +j
+            
+            valid = []
             if s%N != 0:
-                valid.append(left);
+                valid.append(left)
             if s%N != N-1:
-                valid.append(right);
+                valid.append(right)
             if s >= N:
-                valid.append(top);
+                valid.append(top)
             if s < (M*N - N):
-                valid.append(bottom);
+                valid.append(bottom)
     
-            lookup = {0: left, 1: right, 2: top, 3: bottom};
+            lookup = {0: left, 1: right, 2: top, 3: bottom, 4:stay}
             for a in range(A):
-                SA = s*A+ a; 
-#                print (SA)
-#                if SA >=56:
-#                    print ("--------valid out states ----------")
-#                    print (valid)
-#                    print ("curr action ", a);
-#                    print ("self state: ", s);
-#                    print ("i: ", i);
-#                    print ("j: ", j);
-#                    print ("left: ", left);
-#                    print ("right: ", right);
-#                    print ("top: ", top);
-#                    print ("bottom: ", bottom);
-                P = nonErgodic_assignP(a, SA, P,p, valid, lookup, s);   
+                SA = s*A+ a
+                P = nonErgodic_assignP(a, SA, P,p, valid, lookup, s)   
     return P; 
 
 """
