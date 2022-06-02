@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar  4 17:45:15 2022
+Created on Tue May 31 14:24:02 2022
 
-@author: craba
+Pick up drop off 2 modes
+
+@author: Sarah Li
 """
 import numpy as np
 import visualization as vs
@@ -24,41 +26,42 @@ mpl.rcParams.update({'font.size': 15})
 mpl.rc('legend', fontsize='small')
 
 
+""" Pick up state is along the bottom. Drop off state is along the top."""
 Columns = 10
 Rows = 5
-T = 180
+T = 60
 player_num = 3
 # set up space 
-pick_up_col = [9, 7, 2] #, 0, 4, 0, 5, 1
+pick_up_col = [8, 7, 2] #, 0, 4, 0, 5, 1
 pick_up_row = Rows - 1
 pick_ups = [pick_up_row*Columns + col for col in pick_up_col]
-drop_off_col = [1, 5, 9]
+drop_off_col = [4, 5, 8]
 drop_off_row = 0
 drop_offs = [drop_off_row*Columns + col for col in drop_off_col]
 # Poisson for package inter-arrival time with lambda = 0.5
-rate = np.exp(-0.5 * 1) 
-drop_off_dist = [[0.3, 0.5, 0.2],
-                 [0.8, 0.1, 0.1],
-                 [0.2, 0.2, 0.6]]
-alpha = [0.5, 1, 2]
-P = [st.pick_up_multi_delivery_dynamics(Rows, Columns, rate, drop_off_dist[p], 
-                                  pick_ups[p], drop_offs) for p in range(player_num)]
+rate = np.exp(-0.2 * 1) 
+
+alpha = [0.5, 1., 1.25]
+P = [st.pick_up_delivery_dynamics(Rows, Columns, rate, [drop_offs[p]], 
+                                  [pick_ups[p]], p=1.) 
+     for p in range(player_num)]
 P_tensor = [st.transition_mat_to_tensor(p_mat) for p_mat in P]
 
 S, SA = P[0].shape
 A = int(SA/S)
-mode_num = len(drop_offs) + 1
+mode_num = 2
 
 
-C = [st.pick_up_delivery_multi_cost(Rows, Columns, A, T, pick_ups[p], 
-                                    drop_offs, p, minimize=False) 
+C = [st.pick_up_delivery_cost(Rows, Columns, A, T, pick_ups[p], 
+                                    [drop_offs[p]], p, minimize=False) 
      for p in range(player_num)]
-# # congestion_coeffs = [0.5, 3, ]
+
 pols = ut.random_initial_policy_finite(S, A, T+1, player_num)
 x, initial_x = st.policy_list(pols, P, T, player_num, Columns)
+initial_x  = st.start_at_pick_up(player_num, drop_offs, S)
 
 # run frank-wolfe
-Iterations = 100 # number of Frank wolf iterations
+Iterations = 20 # number of Frank wolf iterations
 V_hist= [[] for _ in range(player_num)]
 costs = [[] for _ in range(player_num)]
 
@@ -71,7 +74,7 @@ for i in range(Iterations):
     y = sum([alpha[p] * x[p][-1] for p in range(player_num)])
     for p in range(player_num):        
         p_cost = C[p] - alpha[p] * st.state_congestion_faster(
-            Rows, Columns, mode_num, A, T, y) # 1.25 
+            Rows, Columns, mode_num, A, T, y) - 1e-2 * np.reshape(x[p][-1], (S, A, T+1)) # 1.25 
         costs[p].append(1*p_cost)
         V, pol_new = dp.value_iteration_tensor(P_tensor[p], 1*p_cost, T, minimize=False)
         V_hist[p].append(V)
@@ -106,16 +109,16 @@ for ent in range(entries):
 trials = pd.DataFrame.from_dict(res)
 
 sns.set_style("darkgrid")
-# columns = ['Collisions'] # , 'Time'
-# fig, axs = plt.subplots(figsize=(5,3), nrows=len(columns))
-# # axs = axs.flatten()
-# k = 0
-# for column in columns:
-#     # print(f'visualizing {column}')
-#     sns.lineplot(ax=axs, data=trials, x='t', y=column)
-#     axs.set(ylabel=column)
-#     k += 1
-# plt.show()
+columns = ['Collisions'] # , 'Time'
+fig, axs = plt.subplots(figsize=(5,3), nrows=len(columns))
+# axs = axs.flatten()
+k = 0
+for column in columns:
+    # print(f'visualizing {column}')
+    sns.lineplot(ax=axs, data=trials, x='t', y=column)
+    axs.set(ylabel=column)
+    k += 1
+plt.show()
 
 columns = ['Average wait', 'Max Wait', 'Collisions'] # , 'Time'
 fig, axs = plt.subplots(figsize=(10,5), ncols=len(columns))
